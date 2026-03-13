@@ -1,0 +1,1032 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Teamit – Liiketoimintaennuste</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f8fafc;
+      display: flex; flex-direction: column; height: 100vh; overflow: hidden;
+    }
+
+    /* ── Header ── */
+    #app-header {
+      background: #1e3a5f; color: white;
+      padding: 8px 24px; display: flex; align-items: center;
+      justify-content: space-between; flex-shrink: 0;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    }
+    .hdr-left { display: flex; align-items: center; }
+    .brand { font-size: 20px; font-weight: 800; letter-spacing: 2px; }
+    .brand-sub { color: #93c5fd; font-size: 12px; margin-left: 12px; }
+    .kpis-bar {
+      display: flex; gap: 20px; margin-left: 24px; padding-left: 24px;
+      border-left: 1px solid #2d5080;
+    }
+    .kpi { text-align: center; }
+    .kpi-lbl { color: #93c5fd; font-size: 10px; }
+    .kpi-val { font-weight: 700; font-size: 13px; }
+    .c-white { color: white; } .c-green { color: #86efac; } .c-red { color: #fca5a5; }
+    .year-ctrl { display: flex; align-items: center; gap: 6px; }
+    .yr-btn {
+      width: 30px; height: 30px; border: none; cursor: pointer;
+      background: transparent; color: #93c5fd; border-radius: 6px; font-size: 13px;
+    }
+    .yr-btn:hover { background: #2d5080; }
+    #year-display { font-size: 18px; font-weight: 700; color: white; width: 52px; text-align: center; }
+
+    /* ── Nav ── */
+    #app-nav {
+      background: white; border-bottom: 1px solid #e5e7eb;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+      display: flex; align-items: stretch; padding: 0 16px; flex-shrink: 0;
+    }
+    .tab-btn {
+      padding: 9px 18px; border: none; border-bottom: 2px solid transparent;
+      background: transparent; cursor: pointer; font-size: 13px; font-weight: 500;
+      color: #6b7280; font-family: inherit; transition: color 0.12s, border-color 0.12s;
+    }
+    .tab-btn:hover { color: #1f2937; }
+    .tab-btn.active { color: #1d4ed8; border-bottom-color: #1d4ed8; }
+    .nav-right { margin-left: auto; display: flex; align-items: center; gap: 2px; }
+    .nav-act-btn {
+      border: none; background: transparent; cursor: pointer; font-family: inherit;
+      font-size: 12px; color: #9ca3af; padding: 6px 10px; border-radius: 6px;
+      transition: color 0.12s, background 0.12s;
+    }
+    .nav-act-btn:hover { color: #374151; background: #f3f4f6; }
+    .nav-act-btn.danger:hover { color: #dc2626; background: #fef2f2; }
+
+    /* ── Main ── */
+    #app-main { flex: 1; overflow: hidden; }
+    #tab-content { height: 100%; overflow: auto; background: #f8fafc; }
+
+    /* ── Table ── */
+    .ftable { border-collapse: collapse; font-size: 12px; min-width: 1500px; }
+    .ftable th, .ftable td { border: 1px solid; }
+    .sticky-col { position: sticky; left: 0; z-index: 3; }
+    thead.sticky-head { position: sticky; top: 0; z-index: 10; }
+    thead.sticky-head .sticky-col { z-index: 15; }
+
+    /* ── Inputs ── */
+    .ci {
+      border: 1px solid transparent; border-radius: 4px; padding: 2px 6px;
+      text-align: right; background: transparent; font-size: 12px; font-family: inherit;
+      transition: border-color 0.12s, background 0.12s;
+    }
+    .ci:hover { background: white; }
+    .ci:focus { background: white; outline: none; }
+    .ci-blue:hover  { border-color: #3b82f6; }
+    .ci-blue:focus  { border-color: #2563eb; box-shadow: 0 0 0 2px #dbeafe; }
+    .ci-amber:hover { border-color: #f59e0b; }
+    .ci-amber:focus { border-color: #d97706; box-shadow: 0 0 0 2px #fef3c7; }
+    .ci-red:hover   { border-color: #ef4444; }
+    .ci-red:focus   { border-color: #dc2626; box-shadow: 0 0 0 2px #fee2e2; }
+    .ci-purple:hover { border-color: #a78bfa; }
+    .ci-purple:focus { border-color: #7c3aed; box-shadow: 0 0 0 2px #ede9fe; }
+    input[type=number]::-webkit-inner-spin-button,
+    input[type=number]::-webkit-outer-spin-button { opacity: 1; }
+
+    /* ── Consultants view ── */
+    .cons-view { padding: 24px; max-width: 960px; margin: 0 auto; }
+    .cons-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; }
+    .cons-top h2 { font-size: 22px; font-weight: 700; color: #1f2937; margin: 0 0 4px; }
+    .cons-top p { font-size: 12px; color: #6b7280; margin: 0; }
+    .card {
+      background: white; border-radius: 12px; overflow: hidden;
+      border: 1px solid #e5e7eb; box-shadow: 0 1px 3px rgba(0,0,0,0.08); margin-bottom: 16px;
+    }
+    .card-hdr { background: linear-gradient(to right,#eff6ff,#eef2ff); padding: 16px 24px; border-bottom: 1px solid #e5e7eb; }
+    .card-hdr-row { display: flex; align-items: flex-start; gap: 16px; }
+    .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; flex: 1; }
+    .flabel { display: block; font-size: 11px; font-weight: 500; color: #6b7280; margin-bottom: 4px; }
+    .finput {
+      width: 100%; border: 1px solid #d1d5db; border-radius: 8px;
+      padding: 7px 12px; font-size: 13px; font-family: inherit;
+    }
+    .finput:focus { border-color: #3b82f6; outline: none; box-shadow: 0 0 0 2px #dbeafe; }
+    .finput-r { text-align: right; }
+    .cost-summary { display: flex; gap: 20px; margin-top: 12px; font-size: 11px; color: #6b7280; flex-wrap: wrap; }
+    .card-body { padding: 16px 24px; }
+    .proj-hdr { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .proj-hdr h4 { font-size: 13px; font-weight: 600; color: #374151; margin: 0; }
+    .proj-row {
+      display: flex; align-items: center; gap: 12px;
+      background: #f9fafb; border-radius: 8px; padding: 8px 16px;
+      border: 1px solid #f3f4f6; margin-bottom: 8px; flex-wrap: wrap;
+    }
+    .proj-dot { width: 10px; height: 10px; border-radius: 50%; background: #60a5fa; flex-shrink: 0; }
+    .proj-name-inp {
+      flex: 1; min-width: 160px; border: 1px solid #e5e7eb; border-radius: 8px;
+      padding: 6px 12px; font-size: 13px; font-family: inherit; background: white;
+    }
+    .proj-name-inp:focus { border-color: #3b82f6; outline: none; }
+    .proj-rate-wrap { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+    .proj-rate-inp {
+      width: 90px; border: 1px solid #e5e7eb; border-radius: 8px;
+      padding: 6px 10px; font-size: 13px; text-align: right; font-family: inherit; background: white;
+    }
+    .proj-rate-inp:focus { border-color: #3b82f6; outline: none; }
+    .btn-link { background: transparent; border: none; cursor: pointer; color: #1d4ed8; font-size: 13px; font-family: inherit; font-weight: 500; }
+    .btn-link:hover { text-decoration: underline; }
+    .btn-primary {
+      background: #1d4ed8; color: white; border: none; cursor: pointer; font-family: inherit;
+      font-size: 13px; font-weight: 500; padding: 10px 20px; border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.15); white-space: nowrap;
+    }
+    .btn-primary:hover { background: #1e40af; }
+    .btn-icon {
+      background: transparent; border: none; cursor: pointer; color: #d1d5db;
+      font-size: 20px; width: 36px; height: 36px; border-radius: 8px; flex-shrink: 0;
+      transition: color 0.12s, background 0.12s; margin-top: 14px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .btn-icon:hover { color: #dc2626; background: #fef2f2; }
+    .btn-del-proj {
+      background: transparent; border: none; cursor: pointer; color: #d1d5db;
+      font-size: 18px; width: 24px; height: 24px; border-radius: 4px;
+      transition: color 0.12s; display: flex; align-items: center; justify-content: center;
+    }
+    .btn-del-proj:hover { color: #ef4444; }
+    .info-box {
+      margin-top: 24px; background: #eff6ff; border-radius: 12px;
+      padding: 16px; border: 1px solid #bfdbfe;
+    }
+    .info-box strong { font-size: 13px; font-weight: 600; color: #1e40af; display: block; margin-bottom: 8px; }
+    .info-box ul { padding-left: 20px; margin: 0; }
+    .info-box li { font-size: 12px; color: #1d4ed8; margin-bottom: 4px; }
+    .empty-state {
+      text-align: center; padding: 80px 24px; background: white; border-radius: 12px;
+      border: 2px dashed #e5e7eb; color: #9ca3af;
+    }
+    .empty-state .icon { font-size: 48px; margin-bottom: 16px; }
+    .empty-state h3 { font-size: 18px; font-weight: 600; margin: 0 0 4px; }
+    .empty-state p { font-size: 14px; margin: 0; }
+
+    /* ── Salary model buttons ── */
+    .salary-model-row { display: flex; gap: 6px; margin-top: 10px; align-items: center; flex-wrap: wrap; }
+    .smodel-btn {
+      border: 1px solid #d1d5db; border-radius: 6px; padding: 4px 10px;
+      font-size: 11px; font-weight: 500; cursor: pointer; background: white;
+      font-family: inherit; transition: all 0.12s; color: #6b7280;
+    }
+    .smodel-btn:hover { background: #f3f4f6; color: #374151; }
+    .smodel-btn.active-fixed   { background: #dbeafe; color: #1d4ed8; border-color: #93c5fd; }
+    .smodel-btn.active-billing { background: #d1fae5; color: #065f46; border-color: #6ee7b7; }
+    .smodel-btn.active-admin   { background: #ede9fe; color: #5b21b6; border-color: #c4b5fd; }
+    .ptype-btn {
+      border: 1px solid #d1d5db; border-radius: 5px; padding: 3px 8px;
+      font-size: 10px; font-weight: 500; cursor: pointer; background: white;
+      font-family: inherit; transition: all 0.12s; color: #6b7280;
+    }
+    .ptype-btn:hover { background: #f3f4f6; }
+    .ptype-btn.active-hourly  { background: #dbeafe; color: #1d4ed8; border-color: #93c5fd; }
+    .ptype-btn.active-fixed-p { background: #d1fae5; color: #065f46; border-color: #6ee7b7; }
+
+    @media print { #app-nav, .no-print { display: none !important; } }
+  </style>
+</head>
+<body>
+
+<header id="app-header">
+  <div class="hdr-left">
+    <div>
+      <span class="brand">TEAMIT</span>
+      <span class="brand-sub">Liiketoimintaennuste</span>
+    </div>
+    <div class="kpis-bar">
+      <div class="kpi"><div class="kpi-lbl">Laskutus</div><div id="kpi-rev" class="kpi-val c-green">–</div></div>
+      <div class="kpi"><div class="kpi-lbl">Kulut</div><div id="kpi-exp" class="kpi-val c-white">–</div></div>
+      <div class="kpi"><div class="kpi-lbl">Kate</div><div id="kpi-profit" class="kpi-val c-white">–</div></div>
+      <div class="kpi"><div class="kpi-lbl">Kate-%</div><div id="kpi-margin" class="kpi-val c-white">–</div></div>
+    </div>
+  </div>
+  <div class="year-ctrl">
+    <button class="yr-btn" onclick="changeYear(-1)">&#9664;</button>
+    <span id="year-display">2025</span>
+    <button class="yr-btn" onclick="changeYear(1)">&#9654;</button>
+  </div>
+</header>
+
+<nav id="app-nav" class="no-print">
+  <button class="tab-btn active" id="tab-btn-ennuste"   onclick="setTab('ennuste')">&#128202; Ennuste</button>
+  <button class="tab-btn"        id="tab-btn-konsultit" onclick="setTab('konsultit')">&#128101; Konsultit</button>
+  <div class="nav-right">
+    <button class="nav-act-btn" onclick="window.print()">&#128424; Tulosta</button>
+    <button class="nav-act-btn danger" onclick="resetAll()">&#8635; Nollaa</button>
+  </div>
+</nav>
+
+<main id="app-main">
+  <div id="tab-content"></div>
+</main>
+
+<script>
+// ── Constants ──────────────────────────────────────────────────────────────────
+var HPD = 7.5;
+var MONTHS_S = ['Tam','Hel','Maa','Huh','Tou','Kes','Hei','Elo','Syy','Lok','Mar','Jou'];
+var M12 = [0,1,2,3,4,5,6,7,8,9,10,11];
+var ECATS = [
+  {key:'toimitila',    label:'Toimitila &amp; vuokrat'},
+  {key:'it',           label:'IT &amp; ohjelmistot'},
+  {key:'markkinointi', label:'Markkinointi'},
+  {key:'matkat',       label:'Matkat &amp; edustus'},
+  {key:'hallinto',     label:'Hallinto &amp; talous'},
+  {key:'muut',         label:'Muut kulut'},
+];
+
+// ── Helpers ────────────────────────────────────────────────────────────────────
+function fmt(n) {
+  return new Intl.NumberFormat('fi-FI',{style:'currency',currency:'EUR',
+    minimumFractionDigits:0,maximumFractionDigits:0}).format(n||0);
+}
+function fmtN(n,d) {
+  d = d === undefined ? 1 : d;
+  return new Intl.NumberFormat('fi-FI',
+    {minimumFractionDigits:d,maximumFractionDigits:d}).format(n||0);
+}
+function getWorkingDays(year, month) {
+  var c=0, d=new Date(year,month,1);
+  while (d.getMonth()===month) { var wd=d.getDay(); if(wd&&wd!==6) c++; d.setDate(d.getDate()+1); }
+  return c;
+}
+function uid() { return '_'+Math.random().toString(36).slice(2,9); }
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Defaults ───────────────────────────────────────────────────────────────────
+function defConsultants() {
+  return [
+    {id:uid(), name:'Matti Meikäläinen', salaryModel:'fixed', monthlySalary:4800, socialCostPercent:25, billingSharePercent:50,
+     projects:[{id:uid(), name:'Asiakas A – Projekti Alpha', projectType:'hourly', hourlyRate:110}]},
+    {id:uid(), name:'Maija Virtanen', salaryModel:'fixed', monthlySalary:5200, socialCostPercent:25, billingSharePercent:50,
+     projects:[
+       {id:uid(), name:'Asiakas B – Projekti Beta',  projectType:'hourly', hourlyRate:125},
+       {id:uid(), name:'Asiakas C – Projekti Gamma', projectType:'hourly', hourlyRate:135},
+     ]},
+  ];
+}
+function defOtherExp() {
+  return M12.map(function() { return {toimitila:1500,it:500,markkinointi:300,matkat:200,hallinto:500,muut:200}; });
+}
+
+// ── State ──────────────────────────────────────────────────────────────────────
+var S = {
+  year: new Date().getFullYear(),
+  tab: 'ennuste',
+  consultants: defConsultants(),
+  billableDays: {},
+  salaryOverrides: {},
+  commissions: {},
+  fixedRevenue: {},
+  otherExpenses: defOtherExp(),
+};
+
+// ── Persistence ────────────────────────────────────────────────────────────────
+function save() {
+  try { localStorage.setItem('teamit-v2', JSON.stringify(S)); } catch(e) {}
+}
+function load() {
+  try {
+    var raw = localStorage.getItem('teamit-v2');
+    if (!raw) return;
+    var d = JSON.parse(raw);
+    if (d.consultants)     S.consultants     = d.consultants;
+    if (d.billableDays)    S.billableDays    = d.billableDays;
+    if (d.salaryOverrides) S.salaryOverrides = d.salaryOverrides;
+    if (d.commissions)     S.commissions     = d.commissions;
+    if (d.fixedRevenue)    S.fixedRevenue    = d.fixedRevenue;
+    if (d.otherExpenses)   S.otherExpenses   = d.otherExpenses;
+    if (d.year)            S.year            = d.year;
+    S.consultants = S.consultants.map(function(c) {
+      if (!c.salaryModel)          c.salaryModel = 'fixed';
+      if (c.billingSharePercent === undefined) c.billingSharePercent = 50;
+      c.projects = c.projects.map(function(p) {
+        if (!p.projectType) p.projectType = 'hourly';
+        return p;
+      });
+      return c;
+    });
+  } catch(e) {}
+}
+
+// ── Calculations ───────────────────────────────────────────────────────────────
+function getDays(pid, m)   { return Number((S.billableDays[pid] && S.billableDays[pid][m] !== undefined) ? S.billableDays[pid][m] : 0); }
+function getFixedRev(pid, m) { return Number((S.fixedRevenue[pid] && S.fixedRevenue[pid][m] !== undefined) ? S.fixedRevenue[pid][m] : 0); }
+function getCommission(cid, m) { return Number((S.commissions[cid] && S.commissions[cid][m] !== undefined) ? S.commissions[cid][m] : 0); }
+
+function getProjRev(p, m) {
+  if ((p.projectType||'hourly') === 'fixed') return getFixedRev(p.id, m);
+  return getDays(p.id,m) * HPD * p.hourlyRate;
+}
+function getConsRev(c, m)  { return c.projects.reduce(function(s,p){return s+getProjRev(p,m);},0); }
+function getTotalRev(m)    { return S.consultants.reduce(function(s,c){return s+getConsRev(c,m);},0); }
+
+function getSalary(c, m) {
+  var model = c.salaryModel || 'fixed';
+  if (model === 'billing') {
+    if (m === 0) return 0;
+    var prevBilling = getConsRev(c, m - 1);
+    return prevBilling * ((c.billingSharePercent !== undefined ? c.billingSharePercent : 50) / 100);
+  }
+  var ov = S.salaryOverrides[c.id] && S.salaryOverrides[c.id][m] !== undefined ? S.salaryOverrides[c.id][m] : null;
+  return Number(ov !== null ? ov : (c.monthlySalary || 0));
+}
+function getSocial(c, m) {
+  var base = getSalary(c, m);
+  if ((c.salaryModel||'fixed') === 'admin') base += getCommission(c.id, m);
+  return base * (c.socialCostPercent / 100);
+}
+function getTotalSal(m)    { return S.consultants.reduce(function(s,c){return s+getSalary(c,m);},0); }
+function getTotalComm(m)   { return S.consultants.reduce(function(s,c){return s+(((c.salaryModel||'fixed')==='admin')?getCommission(c.id,m):0);},0); }
+function getTotalSoc(m)    { return S.consultants.reduce(function(s,c){return s+getSocial(c,m);},0); }
+function getOtherTotal(m)  {
+  return ECATS.reduce(function(s,cat){return s+Number((S.otherExpenses[m]&&S.otherExpenses[m][cat.key])||0);},0);
+}
+function getTotalExp(m)    { return getTotalSal(m)+getTotalComm(m)+getTotalSoc(m)+getOtherTotal(m); }
+function getProfit(m)      { return getTotalRev(m)-getTotalExp(m); }
+function getMargin(m)      { var r=getTotalRev(m); return r?getProfit(m)/r*100:0; }
+function getWdays()        { return M12.map(function(m){return getWorkingDays(S.year,m);}); }
+function hasAdminConsultants() {
+  return S.consultants.some(function(c){ return (c.salaryModel||'fixed') === 'admin'; });
+}
+
+// ── Focus / scroll preservation ────────────────────────────────────────────────
+function saveFocus() {
+  var el = document.activeElement;
+  if (!el || !el.id) return null;
+  var s=null, e=null;
+  try { s=el.selectionStart; e=el.selectionEnd; } catch(x) {}
+  return {id:el.id, s:s, e:e};
+}
+function restoreFocus(f) {
+  if (!f) return;
+  var el = document.getElementById(f.id);
+  if (!el) return;
+  el.focus();
+  if (f.s !== null) { try { el.setSelectionRange(f.s, f.e); } catch(x) {} }
+}
+
+// ── Header KPIs ────────────────────────────────────────────────────────────────
+function updateHeader() {
+  var annRev=0, annExp=0;
+  M12.forEach(function(m){ annRev+=getTotalRev(m); annExp+=getTotalExp(m); });
+  var annProfit=annRev-annExp, annMargin=annRev?annProfit/annRev*100:0;
+  document.getElementById('year-display').textContent = S.year;
+  document.getElementById('kpi-rev').textContent   = fmt(annRev);
+  document.getElementById('kpi-exp').textContent   = fmt(annExp);
+  var ep=document.getElementById('kpi-profit'), em=document.getElementById('kpi-margin');
+  ep.textContent = fmt(annProfit);
+  ep.className   = 'kpi-val '+(annProfit>=0?'c-green':'c-red');
+  em.textContent = fmtN(annMargin)+'%';
+  em.className   = 'kpi-val '+(annMargin>=0?'c-green':'c-red');
+}
+function updateTabButtons() {
+  document.getElementById('tab-btn-ennuste').className   = 'tab-btn'+(S.tab==='ennuste'?' active':'');
+  document.getElementById('tab-btn-konsultit').className = 'tab-btn'+(S.tab==='konsultit'?' active':'');
+}
+
+// ── Render ─────────────────────────────────────────────────────────────────────
+function renderTab() {
+  var f = saveFocus();
+  var tc = document.getElementById('tab-content');
+  var sc = tc.scrollTop;
+  tc.innerHTML = S.tab==='ennuste' ? buildForecast() : buildConsultants();
+  tc.scrollTop = sc;
+  restoreFocus(f);
+}
+function rerender() {
+  updateHeader();
+  renderTab();
+}
+
+// ── Table helpers ──────────────────────────────────────────────────────────────
+function sectionRow(label, color) {
+  return '<tr><td colspan="14" style="background:'+color+';color:white;padding:6px 12px;'
+       + 'font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:2px;'
+       + 'border:1px solid #4b5563;position:sticky;left:0;z-index:4;">'+label+'</td></tr>';
+}
+function totalRow(label, values, total, bg, bold) {
+  var fw=bold?800:700, fs=bold?13:12;
+  var cells = values.map(function(v){
+    return '<td style="border:1px solid #4b5563;padding:6px 8px;text-align:right;font-weight:600;color:white;">'+fmt(v)+'</td>';
+  }).join('');
+  return '<tr style="background:'+bg+';color:white;">'
+       + '<td class="sticky-col" style="background:'+bg+';padding:8px 12px;border:1px solid #4b5563;'
+       + 'font-weight:'+fw+';font-size:'+fs+'px;white-space:nowrap;">'+label+'</td>'
+       + cells
+       + '<td style="border:1px solid #4b5563;padding:6px 8px;text-align:right;font-weight:700;font-size:'+fs+'px;">'+fmt(total)+'</td>'
+       + '</tr>';
+}
+// ── Forecast Table ─────────────────────────────────────────────────────────────
+function buildForecast() {
+  var wdays = getWdays();
+  var rows = '';
+
+  rows += sectionRow('LASKUTUS', '#1e40af');
+
+  S.consultants.forEach(function(c) {
+    var utilCells = M12.map(function(m) {
+      var bdays = c.projects.reduce(function(s,p){
+        return s + ((p.projectType||'hourly')==='hourly' ? getDays(p.id,m) : 0);
+      },0);
+      var util = wdays[m] ? bdays/wdays[m]*100 : 0;
+      return '<td style="border:1px solid #bfdbfe;background:#dbeafe;text-align:center;'
+           + 'color:#60a5fa;padding:2px 8px;font-size:11px;">'
+           + (util>0?fmtN(util,0)+'%':'') + '</td>';
+    }).join('');
+    var totBdays = M12.reduce(function(s,m){
+      return s+c.projects.reduce(function(ss,p){
+        return ss+((p.projectType||'hourly')==='hourly'?getDays(p.id,m):0);
+      },0);
+    },0);
+    var totWdays = M12.reduce(function(s,m){return s+wdays[m];},0);
+    var annUtil  = totWdays ? fmtN(totBdays/totWdays*100,0)+'%' : '–';
+    rows += '<tr style="background:#dbeafe;">'
+          + '<td class="sticky-col" style="background:#dbeafe;padding:6px 12px;font-weight:700;'
+          + 'color:#1e3a8a;border:1px solid #bfdbfe;font-size:13px;">'+esc(c.name)+'</td>'
+          + utilCells
+          + '<td style="border:1px solid #bfdbfe;background:#bfdbfe;text-align:center;'
+          + 'color:#1e40af;font-size:11px;font-weight:500;padding:2px 8px;">'+annUtil+'</td>'
+          + '</tr>';
+
+    c.projects.forEach(function(proj) {
+      var ptype = proj.projectType || 'hourly';
+
+      if (ptype === 'fixed') {
+        var fixCells = M12.map(function(m) {
+          var val = getFixedRev(proj.id, m);
+          return '<td style="border:1px solid #e5e7eb;padding:2px 4px;text-align:center;background:white;">'
+               + '<input type="number" min="0"'
+               + ' id="fixrev-'+proj.id+'-'+m+'"'
+               + ' value="'+(val||'')+'" placeholder="0"'
+               + ' class="ci ci-blue" style="width:80px;"'
+               + ' oninput="onFixedRevenue(\''+proj.id+'\','+m+',this.value)">'
+               + '</td>';
+        }).join('');
+        var annFixed = fmt(M12.reduce(function(s,m){return s+getFixedRev(proj.id,m);},0));
+        rows += '<tr style="background:white;">'
+              + '<td class="sticky-col" style="background:white;padding:4px 12px 4px 28px;'
+              + 'border:1px solid #e5e7eb;color:#1d4ed8;">'+esc(proj.name)
+              + '<span style="margin-left:8px;background:#d1fae5;color:#065f46;font-size:10px;'
+              + 'padding:1px 7px;border-radius:10px;font-weight:600;">kiinteähintainen</span></td>'
+              + fixCells
+              + '<td style="border:1px solid #e5e7eb;padding:4px 8px;text-align:right;'
+              + 'font-weight:600;color:#1e3a8a;background:#eff6ff;">'+annFixed+'</td></tr>';
+      } else {
+        var daysCells = M12.map(function(m) {
+          var val = getDays(proj.id,m);
+          return '<td style="border:1px solid #e5e7eb;padding:2px 4px;text-align:center;background:white;">'
+               + '<div style="display:flex;align-items:center;gap:2px;justify-content:center;">'
+               + '<input type="number" min="0" max="31" step="0.5"'
+               + ' id="days-'+proj.id+'-'+m+'"'
+               + ' value="'+(val||'')+'" placeholder="0"'
+               + ' class="ci ci-blue" style="width:48px;text-align:center;"'
+               + ' oninput="onDays(\''+proj.id+'\','+m+',this.value)">'
+               + '<span style="color:#9ca3af;font-size:11px;">pv</span>'
+               + '</div></td>';
+        }).join('');
+        var annDays = fmtN(M12.reduce(function(s,m){return s+getDays(proj.id,m);},0),0);
+        rows += '<tr style="background:white;">'
+              + '<td class="sticky-col" style="background:white;padding:4px 12px 4px 28px;'
+              + 'border:1px solid #e5e7eb;color:#1d4ed8;">'+esc(proj.name)
+              + '<span style="margin-left:8px;color:#9ca3af;font-weight:400;">'
+              + proj.hourlyRate+' €/h · '+HPD+' h/pv</span></td>'
+              + daysCells
+              + '<td style="border:1px solid #e5e7eb;padding:4px 8px;text-align:right;'
+              + 'font-weight:600;color:#1e3a8a;background:#eff6ff;">'+annDays+' pv</td></tr>';
+
+        var revCells = M12.map(function(m) {
+          var v = getProjRev(proj,m);
+          return '<td style="border:1px solid #e5e7eb;padding:2px 8px;text-align:right;'
+               + 'font-weight:500;color:#1d4ed8;background:#f0f9ff;">'
+               + (v>0 ? fmt(v) : '<span style="color:#e5e7eb;">–</span>')+'</td>';
+        }).join('');
+        rows += '<tr style="background:#f0f9ff;">'
+              + '<td class="sticky-col" style="background:#f0f9ff;padding:2px 12px 2px 40px;'
+              + 'border:1px solid #e5e7eb;color:#6b7280;font-style:italic;">→ Laskutus</td>'
+              + revCells
+              + '<td style="border:1px solid #e5e7eb;padding:2px 8px;text-align:right;'
+              + 'font-weight:600;color:#1e3a8a;background:#dbeafe;">'
+              + fmt(M12.reduce(function(s,m){return s+getProjRev(proj,m);},0))+'</td></tr>';
+      }
+    });
+
+    if (c.projects.length > 1) {
+      var ctCells = M12.map(function(m) {
+        var v = getConsRev(c,m);
+        return '<td style="border:1px solid #bfdbfe;padding:4px 8px;text-align:right;font-weight:600;color:#1e3a8a;">'
+             + (v>0 ? fmt(v) : '<span style="color:#bfdbfe;">–</span>') + '</td>';
+      }).join('');
+      rows += '<tr style="background:#bfdbfe;">'
+            + '<td class="sticky-col" style="background:#bfdbfe;padding:4px 12px 4px 28px;'
+            + 'border:1px solid #bfdbfe;font-weight:600;color:#1e3a8a;">'
+            + esc(c.name)+' – laskutus yht.</td>'
+            + ctCells
+            + '<td style="border:1px solid #bfdbfe;padding:4px 8px;text-align:right;'
+            + 'font-weight:700;color:#1e3a8a;background:#93c5fd;">'
+            + fmt(M12.reduce(function(s,m){return s+getConsRev(c,m);},0))+'</td></tr>';
+    }
+  });
+
+  rows += totalRow('LASKUTUS YHT.',
+    M12.map(function(m){return getTotalRev(m);}),
+    M12.reduce(function(s,m){return s+getTotalRev(m);},0), '#1e40af');
+
+  rows += sectionRow('PALKKAKUSTANNUKSET', '#92400e');
+
+  S.consultants.forEach(function(c) {
+    var model = c.salaryModel || 'fixed';
+
+    if (model === 'billing') {
+      var salCells = M12.map(function(m) {
+        var v = getSalary(c, m);
+        return '<td style="border:1px solid #bbf7d0;padding:4px 8px;text-align:right;'
+             + 'background:#f0fdf4;color:#15803d;font-weight:500;">'
+             + (m===0 ? '<span style="color:#bbf7d0;font-size:10px;">tam: –</span>' : fmt(v))
+             + '</td>';
+      }).join('');
+      var share = c.billingSharePercent !== undefined ? c.billingSharePercent : 50;
+      rows += '<tr style="background:#f0fdf4;">'
+            + '<td class="sticky-col" style="background:#f0fdf4;padding:4px 12px;'
+            + 'border:1px solid #bbf7d0;color:#1f2937;font-weight:500;">'+esc(c.name)
+            + '<span style="margin-left:8px;background:#d1fae5;color:#065f46;font-size:10px;'
+            + 'padding:1px 7px;border-radius:10px;font-weight:600;">'+share+'% laskutuksesta</span>'
+            + '<span style="margin-left:6px;color:#9ca3af;font-size:10px;">ed. kuukausi</span></td>'
+            + salCells
+            + '<td style="border:1px solid #bbf7d0;padding:4px 8px;text-align:right;'
+            + 'font-weight:600;color:#15803d;background:#dcfce7;">'
+            + fmt(M12.reduce(function(s,m){return s+getSalary(c,m);},0))+'</td></tr>';
+    } else {
+      var salCells2 = M12.map(function(m) {
+        var val = getSalary(c,m);
+        return '<td style="border:1px solid #e5e7eb;padding:2px 4px;text-align:center;background:white;">'
+             + '<input type="number" min="0"'
+             + ' id="sal-'+c.id+'-'+m+'"'
+             + ' value="'+(val||'')+'"'
+             + ' class="ci ci-amber" style="width:80px;"'
+             + ' oninput="onSalary(\''+c.id+'\','+m+',this.value)">'
+             + '</td>';
+      }).join('');
+      var modelTag = model==='admin'
+        ? '<span style="margin-left:8px;background:#ede9fe;color:#5b21b6;font-size:10px;padding:1px 7px;border-radius:10px;font-weight:600;">hallinto</span>'
+        : '';
+      rows += '<tr style="background:white;">'
+            + '<td class="sticky-col" style="background:white;padding:4px 12px;'
+            + 'border:1px solid #e5e7eb;color:#1f2937;font-weight:500;">'+esc(c.name)
+            + modelTag
+            + '<span style="margin-left:8px;color:#9ca3af;font-weight:400;">(oletus '+fmt(c.monthlySalary)+'/kk)</span></td>'
+            + salCells2
+            + '<td style="border:1px solid #e5e7eb;padding:4px 8px;text-align:right;'
+            + 'font-weight:600;color:#78350f;background:#fef3c7;">'
+            + fmt(M12.reduce(function(s,m){return s+getSalary(c,m);},0))+'</td></tr>';
+
+      if (model === 'admin') {
+        var commCells = M12.map(function(m) {
+          var val = getCommission(c.id, m);
+          return '<td style="border:1px solid #e5e7eb;padding:2px 4px;text-align:center;background:#faf5ff;">'
+               + '<input type="number" min="0"'
+               + ' id="comm-'+c.id+'-'+m+'"'
+               + ' value="'+(val||'')+'"'
+               + ' class="ci ci-purple" style="width:80px;"'
+               + ' oninput="onCommission(\''+c.id+'\','+m+',this.value)">'
+               + '</td>';
+        }).join('');
+        rows += '<tr style="background:#faf5ff;">'
+              + '<td class="sticky-col" style="background:#faf5ff;padding:2px 12px 2px 28px;'
+              + 'border:1px solid #e5e7eb;color:#7c3aed;font-style:italic;">→ Provisio / bonus</td>'
+              + commCells
+              + '<td style="border:1px solid #e5e7eb;padding:2px 8px;text-align:right;'
+              + 'font-weight:500;color:#5b21b6;background:#ede9fe;">'
+              + fmt(M12.reduce(function(s,m){return s+getCommission(c.id,m);},0))+'</td></tr>';
+      }
+    }
+
+    var socCells = M12.map(function(m) {
+      var v = getSocial(c,m);
+      return '<td style="border:1px solid #e5e7eb;padding:2px 8px;text-align:right;'
+           + 'color:#b45309;background:#fffbeb;">'
+           + (v>0 ? fmt(v) : '<span style="color:#e5e7eb;">–</span>')+'</td>';
+    }).join('');
+    rows += '<tr style="background:#fffbeb;">'
+          + '<td class="sticky-col" style="background:#fffbeb;padding:2px 12px 2px 28px;'
+          + 'border:1px solid #e5e7eb;color:#b45309;font-style:italic;">'
+          + '→ Sivukust. ('+c.socialCostPercent+'%)</td>'
+          + socCells
+          + '<td style="border:1px solid #e5e7eb;padding:2px 8px;text-align:right;'
+          + 'font-weight:500;color:#78350f;background:#fde68a;">'
+          + fmt(M12.reduce(function(s,m){return s+getSocial(c,m);},0))+'</td></tr>';
+  });
+
+  rows += totalRow('PALKAT YHT.',
+    M12.map(function(m){return getTotalSal(m);}),
+    M12.reduce(function(s,m){return s+getTotalSal(m);},0), '#92400e');
+
+  if (hasAdminConsultants()) {
+    var commTotCells = M12.map(function(m) {
+      return '<td style="border:1px solid #e5e7eb;padding:6px 8px;text-align:right;'
+           + 'font-weight:500;color:#5b21b6;background:#faf5ff;">'+fmt(getTotalComm(m))+'</td>';
+    }).join('');
+    rows += '<tr style="background:#faf5ff;">'
+          + '<td class="sticky-col" style="background:#faf5ff;padding:6px 12px;'
+          + 'border:1px solid #e5e7eb;font-weight:600;color:#5b21b6;">'
+          + 'Provisiot yht.</td>'
+          + commTotCells
+          + '<td style="border:1px solid #e5e7eb;padding:6px 8px;text-align:right;'
+          + 'font-weight:700;color:#5b21b6;background:#ede9fe;">'
+          + fmt(M12.reduce(function(s,m){return s+getTotalComm(m);},0))+'</td></tr>';
+  }
+
+  var socTotCells = M12.map(function(m) {
+    return '<td style="border:1px solid #e5e7eb;padding:6px 8px;text-align:right;'
+         + 'font-weight:500;color:#78350f;background:#fef3c7;">'+fmt(getTotalSoc(m))+'</td>';
+  }).join('');
+  rows += '<tr style="background:#fef3c7;">'
+        + '<td class="sticky-col" style="background:#fef3c7;padding:6px 12px;'
+        + 'border:1px solid #e5e7eb;font-weight:600;color:#78350f;">'
+        + 'Palkansivukustannukset yht.</td>'
+        + socTotCells
+        + '<td style="border:1px solid #e5e7eb;padding:6px 8px;text-align:right;'
+        + 'font-weight:700;color:#78350f;background:#fcd34d;">'
+        + fmt(M12.reduce(function(s,m){return s+getTotalSoc(m);},0))+'</td></tr>';
+
+  rows += sectionRow('MUUT KULUT', '#7f1d1d');
+
+  ECATS.forEach(function(cat) {
+    var expCells = M12.map(function(m) {
+      var val = (S.otherExpenses[m] && S.otherExpenses[m][cat.key] !== undefined) ? S.otherExpenses[m][cat.key] : '';
+      return '<td style="border:1px solid #e5e7eb;padding:2px 4px;text-align:center;background:white;">'
+           + '<input type="number" min="0"'
+           + ' id="exp-'+cat.key+'-'+m+'"'
+           + ' value="'+val+'"'
+           + ' class="ci ci-red" style="width:80px;"'
+           + ' oninput="onOtherExp('+m+',\''+cat.key+'\',this.value)">'
+           + '</td>';
+    }).join('');
+    rows += '<tr style="background:white;">'
+          + '<td class="sticky-col" style="background:white;padding:4px 12px;'
+          + 'border:1px solid #e5e7eb;color:#374151;">'
+          + '<span>'+cat.label+'</span>'
+          + '<button onclick="copyToAll(\''+cat.key+'\')" class="no-print"'
+          + ' style="margin-left:8px;font-size:10px;color:#d1d5db;background:transparent;border:none;cursor:pointer;"'
+          + ' title="Kopioi tammikuun arvo kaikille kuukausille">⇉ kaikille</button></td>'
+          + expCells
+          + '<td style="border:1px solid #e5e7eb;padding:4px 8px;text-align:right;'
+          + 'font-weight:500;color:#7f1d1d;background:#fee2e2;">'
+          + fmt(M12.reduce(function(s,m){return s+Number((S.otherExpenses[m]&&S.otherExpenses[m][cat.key])||0);},0))
+          + '</td></tr>';
+  });
+
+  rows += totalRow('MUUT KULUT YHT.',
+    M12.map(function(m){return getOtherTotal(m);}),
+    M12.reduce(function(s,m){return s+getOtherTotal(m);},0), '#7f1d1d');
+  rows += totalRow('KULUT YHT.',
+    M12.map(function(m){return getTotalExp(m);}),
+    M12.reduce(function(s,m){return s+getTotalExp(m);},0), '#111827', true);
+
+  rows += sectionRow('TULOS', '#064e3b');
+
+  var profitCells = M12.map(function(m) {
+    var p = getProfit(m);
+    return '<td style="border:1px solid #e5e7eb;padding:8px;text-align:right;font-weight:700;'
+         + 'color:'+(p>=0?'#15803d':'#dc2626')+';background:'+(p>=0?'#f0fdf4':'#fef2f2')+';">'
+         + fmt(p)+'</td>';
+  }).join('');
+  var totProfit = M12.reduce(function(s,m){return s+getProfit(m);},0);
+  rows += '<tr>'
+        + '<td class="sticky-col" style="background:#f0fdf4;padding:8px 12px;border:1px solid #e5e7eb;'
+        + 'font-weight:700;font-size:13px;color:#1f2937;">KÄYTTÖKATE</td>'
+        + profitCells
+        + '<td style="border:1px solid #e5e7eb;padding:8px;text-align:right;font-weight:700;font-size:14px;'
+        + 'color:'+(totProfit>=0?'#15803d':'#dc2626')+';background:'+(totProfit>=0?'#dcfce7':'#fee2e2')+';">'
+        + fmt(totProfit)+'</td></tr>';
+
+  var marginCells = M12.map(function(m) {
+    var mg = getMargin(m);
+    return '<td style="border:1px solid #e5e7eb;padding:4px 8px;text-align:right;font-weight:500;'
+         + 'color:'+(mg>=0?'#15803d':'#dc2626')+';background:#f0fdf4;">'
+         + fmtN(mg)+'%</td>';
+  }).join('');
+  var annRev2 = M12.reduce(function(s,m){return s+getTotalRev(m);},0);
+  var annProf2 = M12.reduce(function(s,m){return s+getProfit(m);},0);
+  var annMg = annRev2 ? annProf2/annRev2*100 : 0;
+  rows += '<tr style="background:#f0fdf4;">'
+        + '<td class="sticky-col" style="background:#f0fdf4;padding:4px 12px;border:1px solid #e5e7eb;color:#6b7280;">Kate-%</td>'
+        + marginCells
+        + '<td style="border:1px solid #e5e7eb;padding:4px 8px;text-align:right;font-weight:700;'
+        + 'color:'+(annMg>=0?'#15803d':'#dc2626')+';background:'+(annMg>=0?'#dcfce7':'#fee2e2')+';">'
+        + fmtN(annMg)+'%</td></tr>';
+
+  var utilCells = M12.map(function(m) {
+    var bd = S.consultants.reduce(function(s,c){return s+c.projects.reduce(function(ss,p){
+      return ss+((p.projectType||'hourly')==='hourly'?getDays(p.id,m):0);
+    },0);},0);
+    var twd = wdays[m]*S.consultants.length;
+    var u = twd ? bd/twd*100 : 0;
+    return '<td style="border:1px solid #f3f4f6;padding:2px 8px;text-align:right;color:#9ca3af;font-size:11px;background:#f8fafc;">'
+         + (u>0?fmtN(u,0)+'%':'–')+'</td>';
+  }).join('');
+  var bdAnn = M12.reduce(function(s,m){return s+S.consultants.reduce(function(ss,c){
+    return ss+c.projects.reduce(function(sss,p){return sss+((p.projectType||'hourly')==='hourly'?getDays(p.id,m):0);},0);
+  },0);},0);
+  var twdAnn = M12.reduce(function(s,m){return s+wdays[m];},0)*S.consultants.length;
+  rows += '<tr style="background:#f8fafc;">'
+        + '<td class="sticky-col" style="background:#f8fafc;padding:2px 12px;border:1px solid #f3f4f6;color:#9ca3af;font-size:11px;">Laskutettavuus (pv/tp)</td>'
+        + utilCells
+        + '<td style="border:1px solid #f3f4f6;padding:2px 8px;text-align:right;color:#9ca3af;font-size:11px;background:#f8fafc;">'
+        + (twdAnn ? fmtN(bdAnn/twdAnn*100,0)+'%' : '–')+'</td></tr>';
+
+  var headerCells = M12.map(function(m) {
+    return '<th style="padding:6px 8px;border:1px solid #4b5563;text-align:center;font-weight:600;'
+         + 'white-space:nowrap;min-width:95px;background:#1e3a5f;color:white;">'
+         + '<div>'+MONTHS_S[m]+'</div>'
+         + '<div style="font-weight:400;color:#93c5fd;font-size:11px;">'+wdays[m]+' tp</div></th>';
+  }).join('');
+
+  return '<table class="ftable">'
+       + '<thead class="sticky-head"><tr>'
+       + '<th class="sticky-col" style="background:#1e3a5f;color:white;padding:6px 12px;'
+       + 'border:1px solid #4b5563;font-weight:600;text-align:left;min-width:230px;">Rivi</th>'
+       + headerCells
+       + '<th style="padding:6px 12px;border:1px solid #4b5563;text-align:center;font-weight:700;'
+       + 'white-space:nowrap;min-width:105px;background:#152c4a;color:white;">VUOSI</th>'
+       + '</tr></thead>'
+       + '<tbody>'+rows+'</tbody></table>';
+}
+
+// ── Consultants View ───────────────────────────────────────────────────────────
+function buildConsultants() {
+  var cards = '';
+
+  if (S.consultants.length === 0) {
+    cards = '<div class="empty-state">'
+          + '<div class="icon">&#128101;</div>'
+          + '<h3>Ei konsultteja</h3>'
+          + '<p>Lisää ensimmäinen konsultti yllä olevasta painikkeesta.</p>'
+          + '</div>';
+  } else {
+    S.consultants.forEach(function(c) {
+      var model = c.salaryModel || 'fixed';
+      var projs = '';
+      c.projects.forEach(function(proj) {
+        var canDel = c.projects.length > 1;
+        var ptype = proj.projectType || 'hourly';
+        projs += '<div class="proj-row">'
+               + '<div class="proj-dot" style="background:'+(ptype==='fixed'?'#34d399':'#60a5fa')+';"></div>'
+               + '<div style="flex:1;min-width:120px;">'
+               + '<input type="text" id="pname-'+c.id+'-'+proj.id+'"'
+               + ' value="'+esc(proj.name)+'" placeholder="Projektin / asiakkaan nimi"'
+               + ' class="proj-name-inp"'
+               + ' oninput="onProjName(\''+c.id+'\',\''+proj.id+'\',this.value)">'
+               + '</div>'
+               + '<div style="display:flex;gap:3px;flex-shrink:0;align-items:center;">'
+               + '<button class="ptype-btn'+(ptype==='hourly'?' active-hourly':'')+'" onclick="onProjectType(\''+c.id+'\',\''+proj.id+'\',\'hourly\')">Tuntilaskutus</button>'
+               + '<button class="ptype-btn'+(ptype==='fixed'?' active-fixed-p':'')+'" onclick="onProjectType(\''+c.id+'\',\''+proj.id+'\',\'fixed\')">Kiinteähintainen</button>'
+               + '</div>'
+               + (ptype==='hourly'
+                  ? '<div class="proj-rate-wrap">'
+                    + '<span style="font-size:11px;color:#6b7280;white-space:nowrap;">Tuntihinta ALV 0%:</span>'
+                    + '<input type="number" min="0" id="prate-'+c.id+'-'+proj.id+'"'
+                    + ' value="'+proj.hourlyRate+'"'
+                    + ' class="proj-rate-inp"'
+                    + ' oninput="onProjRate(\''+c.id+'\',\''+proj.id+'\',this.value)">'
+                    + '<span style="font-size:11px;color:#6b7280;">€/h</span>'
+                    + '<span id="prate-hint-'+c.id+'-'+proj.id+'" style="font-size:11px;color:#9ca3af;">'
+                    + '('+fmtN(proj.hourlyRate*HPD,0)+' €/pv)</span>'
+                    + '</div>'
+                  : '<span style="font-size:11px;color:#065f46;background:#d1fae5;padding:2px 8px;border-radius:6px;">Laskutus syötetään kuukausikohtaisesti ennustetaulukossa</span>'
+                 )
+               + (canDel ? '<button class="btn-del-proj" onclick="delProject(\''+c.id+'\',\''+proj.id+'\')" title="Poista projekti">×</button>' : '')
+               + '</div>';
+      });
+
+      var modelRow = '<div class="salary-model-row">'
+                   + '<span style="font-size:11px;color:#6b7280;font-weight:500;">Palkkamalli:</span>'
+                   + '<button class="smodel-btn'+(model==='fixed'?' active-fixed':'')+'" onclick="onSalaryModel(\''+c.id+'\',\'fixed\')">Kiinteä palkka</button>'
+                   + '<button class="smodel-btn'+(model==='billing'?' active-billing':'')+'" onclick="onSalaryModel(\''+c.id+'\',\'billing\')">Laskutuspohjainen</button>'
+                   + '<button class="smodel-btn'+(model==='admin'?' active-admin':'')+'" onclick="onSalaryModel(\''+c.id+'\',\'admin\')">Hallinto + provisio</button>'
+                   + '</div>';
+
+      var col2 = model === 'billing'
+        ? '<div><label class="flabel">Laskutusosuus (%)</label>'
+          + '<input type="number" min="0" max="100" id="cshare-'+c.id+'" value="'+(c.billingSharePercent!==undefined?c.billingSharePercent:50)+'"'
+          + ' class="finput finput-r" oninput="onBillingShare(\''+c.id+'\',this.value)"></div>'
+        : '<div><label class="flabel">Kuukausipalkka brutto (€)</label>'
+          + '<input type="number" min="0" id="csal-'+c.id+'" value="'+c.monthlySalary+'"'
+          + ' class="finput finput-r" oninput="onConsSalary(\''+c.id+'\',this.value)"></div>';
+
+      cards += '<div class="card">'
+             + '<div class="card-hdr">'
+             + '<div class="card-hdr-row">'
+             + '<div style="flex:1;">'
+             + '<div class="grid3">'
+             + '<div><label class="flabel">Konsultin / henkilön nimi</label>'
+             + '<input type="text" id="cname-'+c.id+'" value="'+esc(c.name)+'"'
+             + ' class="finput" oninput="onConsName(\''+c.id+'\',this.value)"></div>'
+             + col2
+             + '<div><label class="flabel">Palkansivukust. (%) '
+             + '<span style="color:#9ca3af;font-weight:400;">TyEL, sairasvak., jne.</span></label>'
+             + '<input type="number" min="0" max="100" id="csoc-'+c.id+'" value="'+c.socialCostPercent+'"'
+             + ' class="finput finput-r" oninput="onConsSocial(\''+c.id+'\',this.value)"></div>'
+             + '</div>'
+             + modelRow
+             + '</div>'
+             + '<button class="btn-icon" onclick="delConsultant(\''+c.id+'\')" title="Poista konsultti">×</button>'
+             + '</div>'
+             + '<div id="costsummary-'+c.id+'" class="cost-summary">'
+             + buildCostSummary(c)
+             + '</div>'
+             + '</div>'
+             + '<div class="card-body">'
+             + '<div class="proj-hdr"><h4>Projektit / asiakkaat '
+             + '<span style="color:#9ca3af;font-weight:400;font-size:11px;">('+c.projects.length+' kpl)</span></h4>'
+             + '<button class="btn-link" onclick="addProject(\''+c.id+'\')">+ Lisää projekti</button></div>'
+             + projs
+             + '</div></div>';
+    });
+  }
+
+  return '<div class="cons-view">'
+       + '<div class="cons-top"><div>'
+       + '<h2>Konsultit ja projektit</h2>'
+       + '<p>Hallinnoi henkilöstöä, projekteja ja laskutushintoja.<br>'
+       + 'Kuukausipalkat ovat oletusarvoja — voit muokata niitä kuukausikohtaisesti ennustetaulukossa.</p>'
+       + '</div>'
+       + '<button class="btn-primary" onclick="addConsultant()">+ Lisää henkilö</button>'
+       + '</div>'
+       + cards
+       + '<div class="info-box"><strong>ℹ Laskentaperiaatteet</strong><ul>'
+       + '<li>Laskutettava päivä = <strong>'+HPD+' tuntia</strong></li>'
+       + '<li><strong>Kiinteä palkka:</strong> kuukausipalkka (voidaan ohittaa kuukausikohtaisesti ennustetaulukossa)</li>'
+       + '<li><strong>Laskutuspohjainen palkka:</strong> valittu % × edellisen kuukauden asikaslaskutus (tammikuu = 0)</li>'
+       + '<li><strong>Hallinto + provisio:</strong> kiinteä kuukausipalkka + kuukausikohtainen provisio ennustetaulukossa</li>'
+       + '<li><strong>Kiinteähintainen projekti:</strong> laskutussumma syötetään kuukausikohtaisesti ennustetaulukossa</li>'
+       + '<li>Sivukustannukset lasketaan koko palkkakustannuksesta (palkka + provisio)</li>'
+       + '<li>Tiedot tallennetaan automaattisesti selaimen muistiin</li>'
+       + '</ul></div></div>';
+}
+
+function buildCostSummary(c) {
+  var model = c.salaryModel || 'fixed';
+  if (model === 'billing') {
+    var share = c.billingSharePercent !== undefined ? c.billingSharePercent : 50;
+    return '<span>Malli: <strong style="color:#065f46;">Laskutuspohjainen</strong></span>'
+         + '<span>Osuus: <strong style="color:#065f46;">'+share+'%</strong> ed. kuukauden laskutuksesta</span>'
+         + '<span>Sivukust.: <strong style="color:#b45309;">'+fmtN(c.socialCostPercent,0)+'%</strong> palkasta</span>';
+  }
+  if (model === 'admin') {
+    var total = c.monthlySalary*(1+c.socialCostPercent/100);
+    return '<span>Palkka: <strong style="color:#374151;">'+fmt(c.monthlySalary)+'/kk</strong></span>'
+         + '<span>Sivukust.: <strong style="color:#b45309;">'+fmt(c.monthlySalary*c.socialCostPercent/100)+'/kk</strong></span>'
+         + '<span>Kiinteä yht.: <strong style="color:#5b21b6;">'+fmt(total)+'/kk</strong></span>'
+         + '<span style="color:#9ca3af;">+ provisio kuukausikohtaisesti ennustetaulukossa</span>';
+  }
+  var total = c.monthlySalary*(1+c.socialCostPercent/100);
+  return '<span>Palkka: <strong style="color:#374151;">'+fmt(c.monthlySalary)+'/kk</strong></span>'
+       + '<span>Sivukust.: <strong style="color:#b45309;">'+fmt(c.monthlySalary*c.socialCostPercent/100)+'/kk</strong></span>'
+       + '<span>Yhteensä työnantajalle: <strong style="color:#dc2626;">'+fmt(total)+'/kk</strong></span>'
+       + '<span>= <strong style="color:#dc2626;">'+fmt(total*12)+'/v</strong></span>';
+}
+
+// ── Event handlers ─────────────────────────────────────────────────────────────
+function setTab(tab) { S.tab = tab; save(); updateTabButtons(); renderTab(); }
+function changeYear(d) {
+  S.year += d; save();
+  document.getElementById('year-display').textContent = S.year;
+  if (S.tab === 'ennuste') renderTab();
+}
+function resetAll() {
+  if (!confirm('Nollatko kaikki tiedot? Tätä ei voi peruuttaa.')) return;
+  S.consultants = defConsultants();
+  S.billableDays = {}; S.salaryOverrides = {}; S.commissions = {};
+  S.fixedRevenue = {}; S.otherExpenses = defOtherExp();
+  save(); rerender();
+}
+function onDays(pid, m, val) {
+  if (!S.billableDays[pid]) S.billableDays[pid] = {};
+  S.billableDays[pid][m] = val===''?'':Number(val);
+  save(); rerender();
+}
+function onSalary(cid, m, val) {
+  if (!S.salaryOverrides[cid]) S.salaryOverrides[cid] = {};
+  S.salaryOverrides[cid][m] = val===''?'':Number(val);
+  save(); rerender();
+}
+function onCommission(cid, m, val) {
+  if (!S.commissions[cid]) S.commissions[cid] = {};
+  S.commissions[cid][m] = val===''?'':Number(val);
+  save(); rerender();
+}
+function onFixedRevenue(pid, m, val) {
+  if (!S.fixedRevenue[pid]) S.fixedRevenue[pid] = {};
+  S.fixedRevenue[pid][m] = val===''?'':Number(val);
+  save(); rerender();
+}
+function onOtherExp(m, cat, val) {
+  var n = S.otherExpenses.map(function(x){return Object.assign({},x);});
+  n[m][cat] = val===''?'':Number(val);
+  S.otherExpenses = n;
+  save(); rerender();
+}
+function copyToAll(cat) {
+  var janVal = (S.otherExpenses[0] && S.otherExpenses[0][cat] !== undefined) ? S.otherExpenses[0][cat] : 0;
+  S.otherExpenses = S.otherExpenses.map(function(mo){return Object.assign({},mo,{[cat]:janVal});});
+  save(); rerender();
+}
+function onConsName(cid, val) {
+  S.consultants = S.consultants.map(function(c){return c.id===cid?Object.assign({},c,{name:val}):c;});
+  save();
+}
+function onConsSalary(cid, val) {
+  S.consultants = S.consultants.map(function(c){return c.id===cid?Object.assign({},c,{monthlySalary:Number(val)||0}):c;});
+  save();
+  var c = S.consultants.find(function(x){return x.id===cid;});
+  if (c) { var el=document.getElementById('costsummary-'+cid); if(el) el.innerHTML=buildCostSummary(c); }
+  updateHeader();
+}
+function onConsSocial(cid, val) {
+  S.consultants = S.consultants.map(function(c){return c.id===cid?Object.assign({},c,{socialCostPercent:Number(val)||0}):c;});
+  save();
+  var c = S.consultants.find(function(x){return x.id===cid;});
+  if (c) { var el=document.getElementById('costsummary-'+cid); if(el) el.innerHTML=buildCostSummary(c); }
+  updateHeader();
+}
+function onBillingShare(cid, val) {
+  var share = Number(val) || 50;
+  S.consultants = S.consultants.map(function(c){return c.id===cid?Object.assign({},c,{billingSharePercent:share}):c;});
+  save();
+  var c = S.consultants.find(function(x){return x.id===cid;});
+  if (c) { var el=document.getElementById('costsummary-'+cid); if(el) el.innerHTML=buildCostSummary(c); }
+  updateHeader();
+}
+function onProjName(cid, pid, val) {
+  S.consultants = S.consultants.map(function(c){
+    if (c.id!==cid) return c;
+    return Object.assign({},c,{projects:c.projects.map(function(p){return p.id===pid?Object.assign({},p,{name:val}):p;})});
+  });
+  save();
+}
+function onProjRate(cid, pid, val) {
+  var rate = Number(val)||0;
+  S.consultants = S.consultants.map(function(c){
+    if (c.id!==cid) return c;
+    return Object.assign({},c,{projects:c.projects.map(function(p){return p.id===pid?Object.assign({},p,{hourlyRate:rate}):p;})});
+  });
+  save();
+  var hint = document.getElementById('prate-hint-'+cid+'-'+pid);
+  if (hint) hint.textContent = '('+fmtN(rate*HPD,0)+' €/pv)';
+  updateHeader();
+}
+function onSalaryModel(cid, model) {
+  S.consultants = S.consultants.map(function(c){return c.id===cid?Object.assign({},c,{salaryModel:model}):c;});
+  save(); rerender();
+}
+function onProjectType(cid, pid, type) {
+  S.consultants = S.consultants.map(function(c){
+    if (c.id!==cid) return c;
+    return Object.assign({},c,{projects:c.projects.map(function(p){return p.id===pid?Object.assign({},p,{projectType:type}):p;})});
+  });
+  save(); rerender();
+}
+function addConsultant() {
+  S.consultants = S.consultants.concat([{
+    id:uid(), name:'Uusi henkilö', salaryModel:'fixed', monthlySalary:4500,
+    socialCostPercent:25, billingSharePercent:50,
+    projects:[{id:uid(), name:'Uusi projekti', projectType:'hourly', hourlyRate:100}]
+  }]);
+  save(); rerender();
+}
+function delConsultant(cid) {
+  var c = S.consultants.find(function(x){return x.id===cid;});
+  if (!confirm('Poistetaanko '+(c?c.name:'')+'?')) return;
+  S.consultants = S.consultants.filter(function(x){return x.id!==cid;});
+  save(); rerender();
+}
+function addProject(cid) {
+  S.consultants = S.consultants.map(function(c){
+    if (c.id!==cid) return c;
+    return Object.assign({},c,{projects:c.projects.concat([{id:uid(),name:'Uusi projekti',projectType:'hourly',hourlyRate:100}])});
+  });
+  save(); rerender();
+}
+function delProject(cid, pid) {
+  S.consultants = S.consultants.map(function(c){
+    if (c.id!==cid) return c;
+    return Object.assign({},c,{projects:c.projects.filter(function(p){return p.id!==pid;})});
+  });
+  save(); rerender();
+}
+
+// ── Init ───────────────────────────────────────────────────────────────────────
+load();
+updateHeader();
+updateTabButtons();
+renderTab();
+</script>
+</body>
+</html>
