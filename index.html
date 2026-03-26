@@ -226,6 +226,7 @@
   <button class="tab-btn active" id="tab-btn-ennuste"   onclick="setTab('ennuste')">&#128202; Ennuste</button>
   <button class="tab-btn"        id="tab-btn-konsultit" onclick="setTab('konsultit')">&#128101; Konsultit</button>
   <div class="nav-right">
+    <button class="nav-act-btn" onclick="downloadBackup()">&#128190; Varmuuskopio</button>
     <button class="nav-act-btn" onclick="window.print()">&#128424; Tulosta</button>
     <button class="nav-act-btn danger" onclick="resetAll()">&#8635; Nollaa</button>
   </div>
@@ -365,26 +366,110 @@ function load() {
     var raw = localStorage.getItem('teamit-v2');
     if (raw) applyData(JSON.parse(raw));
   } catch(e) {}
-  // Sitten lataa Google Sheetistä (tuorein data)
+  // Sitten lataa Google Sheetistä ja vertaa
   loadFromCloud();
 }
 
 function loadFromCloud() {
   showSyncStatus('loading');
+  var localRaw = localStorage.getItem('teamit-v2');
   fetch(SHEET_URL)
     .then(function(r) { return r.json(); })
-    .then(function(d) {
-      if (d && d.consultants) {
-        applyData(d);
-        // Päivitä myös localStorage
+    .then(function(cloudData) {
+      var cloudHasData = cloudData && cloudData.consultants;
+      var localHasData = localRaw && JSON.parse(localRaw).consultants;
+
+      if (cloudHasData && localHasData) {
+        // Molemmat löytyvät — tarkista eroavatko
+        var localData = JSON.parse(localRaw);
+        if (JSON.stringify(localData) !== JSON.stringify(cloudData)) {
+          // Data eroaa — näytä valintadialogi
+          showConflictDialog(localData, cloudData);
+          return;
+        }
+      }
+
+      if (cloudHasData) {
+        applyData(cloudData);
         try { localStorage.setItem('teamit-v2', JSON.stringify(S)); } catch(e) {}
         showSyncStatus('loaded');
         rerender();
+      } else if (localHasData) {
+        // Pilvessä ei dataa, paikallista löytyy — lähetetään se pilveen
+        saveToCloud();
+        showSyncStatus('saved');
       } else {
         showSyncStatus('');
       }
     })
     .catch(function() { showSyncStatus('error'); });
+}
+
+function showConflictDialog(localData, cloudData) {
+  var localCount = localData.consultants ? localData.consultants.length : 0;
+  var cloudCount = cloudData.consultants ? cloudData.consultants.length : 0;
+  var localNames = localData.consultants ? localData.consultants.map(function(c){return c.name;}).join(', ') : '-';
+  var cloudNames = cloudData.consultants ? cloudData.consultants.map(function(c){return c.name;}).join(', ') : '-';
+
+  var overlay = document.createElement('div');
+  overlay.id = 'conflict-overlay';
+  overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;';
+  overlay.innerHTML = ''
+    + '<div style="background:#1e293b;border:1px solid #475569;border-radius:12px;padding:24px;max-width:500px;width:90%;color:#e2e8f0;font-family:sans-serif;">'
+    + '<h2 style="margin:0 0 12px;color:#f8fafc;font-size:18px;">Data eroaa pilviversiosta</h2>'
+    + '<p style="color:#94a3b8;font-size:14px;margin-bottom:16px;">Sinulla on paikallisia muutoksia jotka eroavat pilviversion datasta. Kumman haluat säilyttää?</p>'
+    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px;">'
+    + '<div style="background:#162032;padding:12px;border-radius:8px;border:1px solid #334155;">'
+    + '<div style="color:#93c5fd;font-weight:700;font-size:13px;margin-bottom:4px;">Paikallinen (tämä selain)</div>'
+    + '<div style="color:#94a3b8;font-size:12px;">' + localCount + ' konsulttia: ' + esc(localNames) + '</div>'
+    + '</div>'
+    + '<div style="background:#162032;padding:12px;border-radius:8px;border:1px solid #334155;">'
+    + '<div style="color:#6ee7b7;font-weight:700;font-size:13px;margin-bottom:4px;">Pilvi (Google Sheets)</div>'
+    + '<div style="color:#94a3b8;font-size:12px;">' + cloudCount + ' konsulttia: ' + esc(cloudNames) + '</div>'
+    + '</div>'
+    + '</div>'
+    + '<div style="margin-bottom:12px;text-align:center;">'
+    + '<button onclick="downloadBackup()" style="padding:8px 16px;border:1px solid #475569;border-radius:8px;background:transparent;color:#93c5fd;cursor:pointer;font-size:13px;">&#128190; Lataa varmuuskopio ensin</button>'
+    + '</div>'
+    + '<div style="display:flex;gap:12px;">'
+    + '<button onclick="resolveConflict(\'local\')" style="flex:1;padding:10px;border:none;border-radius:8px;background:#3B82F6;color:white;font-weight:600;cursor:pointer;font-size:14px;">Käytä paikallista</button>'
+    + '<button onclick="resolveConflict(\'cloud\')" style="flex:1;padding:10px;border:none;border-radius:8px;background:#10B981;color:white;font-weight:600;cursor:pointer;font-size:14px;">Käytä pilveä</button>'
+    + '</div>'
+    + '</div>';
+  document.body.appendChild(overlay);
+
+  // Tallenna väliaikaisesti
+  window._conflictLocal = localData;
+  window._conflictCloud = cloudData;
+}
+
+function downloadBackup() {
+  var data = localStorage.getItem('teamit-v2') || JSON.stringify(S);
+  var blob = new Blob([data], {type: 'application/json'});
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'teamit-ennuste-backup-' + new Date().toISOString().slice(0,10) + '.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function resolveConflict(choice) {
+  var overlay = document.getElementById('conflict-overlay');
+  if (overlay) overlay.remove();
+
+  if (choice === 'local') {
+    applyData(window._conflictLocal);
+    try { localStorage.setItem('teamit-v2', JSON.stringify(S)); } catch(e) {}
+    saveToCloud();
+    showSyncStatus('saved');
+  } else {
+    applyData(window._conflictCloud);
+    try { localStorage.setItem('teamit-v2', JSON.stringify(S)); } catch(e) {}
+    showSyncStatus('loaded');
+  }
+  rerender();
+  delete window._conflictLocal;
+  delete window._conflictCloud;
 }
 
 // ── Calculations ───────────────────────────────────────────────────────────────
