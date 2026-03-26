@@ -212,10 +212,13 @@
       <div class="kpi"><div class="kpi-lbl">Kate-%</div><div id="kpi-margin" class="kpi-val c-white">–</div></div>
     </div>
   </div>
-  <div class="year-ctrl">
-    <button class="yr-btn" onclick="changeYear(-1)">&#9664;</button>
-    <span id="year-display">2025</span>
-    <button class="yr-btn" onclick="changeYear(1)">&#9654;</button>
+  <div style="display:flex;align-items:center;gap:16px">
+    <span id="sync-status" style="font-size:11px;"></span>
+    <div class="year-ctrl">
+      <button class="yr-btn" onclick="changeYear(-1)">&#9664;</button>
+      <span id="year-display">2025</span>
+      <button class="yr-btn" onclick="changeYear(1)">&#9654;</button>
+    </div>
   </div>
 </header>
 
@@ -299,31 +302,89 @@ var S = {
 };
 
 // ── Persistence ────────────────────────────────────────────────────────────────
+var SHEET_URL = 'https://script.google.com/macros/s/AKfycbxK3t0I2zQqtdW98javdsjm0I7bgzfZszI6wAuKjAxaI_JvtoXftvk5jbxnisStQSvf/exec';
+var _saveTimer = null;
+
 function save() {
+  // Tallenna aina ensin localStorageen (nopea, toimii offline)
   try { localStorage.setItem('teamit-v2', JSON.stringify(S)); } catch(e) {}
+  // Debounce: tallenna Google Sheetsiin 1s viiveellä (vältetään joka näppäinpainalluksen lähetys)
+  clearTimeout(_saveTimer);
+  _saveTimer = setTimeout(saveToCloud, 1000);
 }
+
+function saveToCloud() {
+  try {
+    fetch(SHEET_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: {'Content-Type': 'text/plain'},
+      body: JSON.stringify(S)
+    });
+    showSyncStatus('saved');
+  } catch(e) {
+    showSyncStatus('error');
+  }
+}
+
+function showSyncStatus(status) {
+  var el = document.getElementById('sync-status');
+  if (!el) return;
+  if (status === 'saved')   { el.textContent = 'Tallennettu'; el.style.color = '#86efac'; }
+  else if (status === 'loading') { el.textContent = 'Ladataan...'; el.style.color = '#93c5fd'; }
+  else if (status === 'loaded')  { el.textContent = 'Ladattu'; el.style.color = '#86efac'; }
+  else if (status === 'error')   { el.textContent = 'Virhe tallennuksessa'; el.style.color = '#fca5a5'; }
+  else { el.textContent = ''; }
+  if (status === 'saved' || status === 'loaded') {
+    setTimeout(function() { if(el) el.textContent = ''; }, 3000);
+  }
+}
+
+function applyData(d) {
+  if (d.consultants)     S.consultants     = d.consultants;
+  if (d.billableDays)    S.billableDays    = d.billableDays;
+  if (d.salaryOverrides) S.salaryOverrides = d.salaryOverrides;
+  if (d.commissions)     S.commissions     = d.commissions;
+  if (d.fixedRevenue)    S.fixedRevenue    = d.fixedRevenue;
+  if (d.otherExpenses)   S.otherExpenses   = d.otherExpenses;
+  if (d.year)            S.year            = d.year;
+  S.consultants = S.consultants.map(function(c) {
+    if (!c.salaryModel)          c.salaryModel = 'fixed';
+    if (c.billingSharePercent === undefined) c.billingSharePercent = 50;
+    c.projects = c.projects.map(function(p) {
+      if (!p.projectType) p.projectType = 'hourly';
+      return p;
+    });
+    return c;
+  });
+}
+
 function load() {
+  // Lataa ensin localStoragesta (nopea)
   try {
     var raw = localStorage.getItem('teamit-v2');
-    if (!raw) return;
-    var d = JSON.parse(raw);
-    if (d.consultants)     S.consultants     = d.consultants;
-    if (d.billableDays)    S.billableDays    = d.billableDays;
-    if (d.salaryOverrides) S.salaryOverrides = d.salaryOverrides;
-    if (d.commissions)     S.commissions     = d.commissions;
-    if (d.fixedRevenue)    S.fixedRevenue    = d.fixedRevenue;
-    if (d.otherExpenses)   S.otherExpenses   = d.otherExpenses;
-    if (d.year)            S.year            = d.year;
-    S.consultants = S.consultants.map(function(c) {
-      if (!c.salaryModel)          c.salaryModel = 'fixed';
-      if (c.billingSharePercent === undefined) c.billingSharePercent = 50;
-      c.projects = c.projects.map(function(p) {
-        if (!p.projectType) p.projectType = 'hourly';
-        return p;
-      });
-      return c;
-    });
+    if (raw) applyData(JSON.parse(raw));
   } catch(e) {}
+  // Sitten lataa Google Sheetistä (tuorein data)
+  loadFromCloud();
+}
+
+function loadFromCloud() {
+  showSyncStatus('loading');
+  fetch(SHEET_URL)
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      if (d && d.consultants) {
+        applyData(d);
+        // Päivitä myös localStorage
+        try { localStorage.setItem('teamit-v2', JSON.stringify(S)); } catch(e) {}
+        showSyncStatus('loaded');
+        rerender();
+      } else {
+        showSyncStatus('');
+      }
+    })
+    .catch(function() { showSyncStatus('error'); });
 }
 
 // ── Calculations ───────────────────────────────────────────────────────────────
