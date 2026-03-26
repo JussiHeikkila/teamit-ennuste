@@ -307,11 +307,12 @@ var SHEET_URL = 'https://script.google.com/macros/s/AKfycbxK3t0I2zQqtdW98javdsjm
 var _saveTimer = null;
 
 function save() {
+  markEditing();
   // Tallenna aina ensin localStorageen (nopea, toimii offline)
   try { localStorage.setItem('teamit-v2', JSON.stringify(S)); } catch(e) {}
   // Debounce: tallenna Google Sheetsiin 1s viiveellä (vältetään joka näppäinpainalluksen lähetys)
   clearTimeout(_saveTimer);
-  _saveTimer = setTimeout(saveToCloud, 1000);
+  _saveTimer = setTimeout(function() { saveToCloud(); _saveTimer = null; }, 1000);
 }
 
 function saveToCloud() {
@@ -470,6 +471,46 @@ function resolveConflict(choice) {
   rerender();
   delete window._conflictLocal;
   delete window._conflictCloud;
+}
+
+// ── Auto-sync (polling) ───────────────────────────────────────────────────────
+var _lastCloudHash = '';
+var _userIsEditing = false;
+var _editTimeout = null;
+
+function markEditing() {
+  _userIsEditing = true;
+  clearTimeout(_editTimeout);
+  _editTimeout = setTimeout(function() { _userIsEditing = false; }, 5000);
+}
+
+function startAutoSync() {
+  setInterval(function() {
+    // Älä pollaa jos käyttäjä editoi, konfliktidialogi auki, tai tallentamassa
+    if (_userIsEditing || document.getElementById('conflict-overlay') || _saveTimer) return;
+    fetch(SHEET_URL)
+      .then(function(r) { return r.text(); })
+      .then(function(text) {
+        if (!text || text === '{}') return;
+        // Vertaa hashia — päivitä vain jos muuttunut
+        if (text === _lastCloudHash) return;
+        _lastCloudHash = text;
+        var d = JSON.parse(text);
+        if (d && d.consultants) {
+          // Vertaa nykyiseen stateen
+          var current = JSON.stringify(S);
+          if (text !== current) {
+            applyData(d);
+            try { localStorage.setItem('teamit-v2', JSON.stringify(S)); } catch(e) {}
+            var f = saveFocus();
+            rerender();
+            restoreFocus(f);
+            showSyncStatus('loaded');
+          }
+        }
+      })
+      .catch(function() {});
+  }, 10000);
 }
 
 // ── Calculations ───────────────────────────────────────────────────────────────
@@ -1184,6 +1225,7 @@ load();
 updateHeader();
 updateTabButtons();
 renderTab();
+startAutoSync();
 </script>
 </body>
 </html>
